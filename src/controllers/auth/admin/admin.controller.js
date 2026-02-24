@@ -1,10 +1,12 @@
 const AdminAuthServices = require("../../../services/auth/admin/admin.service");
 const { MSG } = require("../../../utils/msg");
 const { errorResponse, successResponse } = require("../../../utils/response");
+const sendotpmailer = require("../../../utils/mailer");
 const statusCode = require('http-status-codes');
 const moment = require("moment");
 const bcrypt = require("bcryptjs");
 const jwt = require('jsonwebtoken');
+
 
 const adminAuthService = new AdminAuthServices();
 
@@ -73,6 +75,48 @@ module.exports.fetchAllAdmin = async (req, res) => {
     return res.status(statusCode.OK).json(successResponse(statusCode.OK, false, "All Admins Fetched Successfully", admins));
   } catch (error) {
     console.log("Error :", error);
+    return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR));
+  }
+};
+
+// 🔑 ADMIN FORGOT PASSWORD & OTP LOGIC
+module.exports.forgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const admin = await adminAuthService.singleAdmin({ email: email });
+    
+    if (!admin) {
+      return res.status(statusCode.NOT_FOUND).json(errorResponse(statusCode.NOT_FOUND, true, "Admin not found with this email"));
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    console.log("Generated Admin OTP:", otp);
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Zyphronix E-Commerce - Admin Password Reset OTP",
+        html: `
+            <h3>Hello ${admin.first_name},</h3>
+            <p>Your Admin OTP for password reset is: <b style="font-size: 20px; color: blue;">${otp}</b></p>
+            <p>Please do not share this OTP with anyone.</p>
+        `
+    };
+
+    sendotpmailer.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log("Email Bhejne Mein Error:", error);
+            return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, "Failed to send OTP email"));
+        }
+        
+        return res.status(statusCode.OK).json(
+            successResponse(statusCode.OK, false, "OTP sent successfully to Admin email", { email, otp }) 
+        );
+    });
+
+  } catch (error) {
+    console.log("Admin Forgot Password Error:", error);
     return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR));
   }
 };

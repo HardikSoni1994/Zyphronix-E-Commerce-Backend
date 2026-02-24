@@ -1,4 +1,3 @@
-const adminModel = require("../../../models/admin.model");
 const Admin = require("../../../models/admin.model");
 
 module.exports = class AdminAuthServices {

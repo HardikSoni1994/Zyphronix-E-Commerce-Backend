@@ -2,8 +2,8 @@ module.exports.MSG = {
     // ===============================
     // 🔐 AUTH MESSAGES
     // ===============================
-    USER_REGISTER_SUCCESS: "User registered successfully",
-    USER_REGISTER_FAILED: "User registration failed",
+    USER_REGISTRATION_SUCCESS: "User registration successfully",
+    USER_REGISTRATION_FAILED: "User registration failed",
     USER_LOGIN_SUCCESS: "User login successfully",
     USER_LOGIN_FAILED: "Invalid email or password",
     USER_NOT_FOUND: "User not found",
