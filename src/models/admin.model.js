@@ -30,6 +30,23 @@ const adminSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  OTP: { 
+    type: Number, 
+    default: null 
+  },
+
+  OTPExpire: { 
+    type: Date, 
+    default: null 
+  },
+  attempt: { 
+    type: Number, 
+    default: 0 
+  },
+  attempt_expire: { 
+    type: Date, 
+    default: null 
+  },
   create_at: {
     type: String,
     required: true,
@@ -37,7 +54,7 @@ const adminSchema = mongoose.Schema({
   update_at: {
     type: String,
     required: true,
-  }
+  },
 });
 
 module.exports = mongoose.model("Admin", adminSchema, "Admin");

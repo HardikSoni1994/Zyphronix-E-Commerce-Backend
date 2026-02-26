@@ -40,6 +40,7 @@ module.exports.loginAdmin = async (req, res) => {
     if (!admin) {
       return res.status(statusCode.NOT_FOUND).json(errorResponse(statusCode.NOT_FOUND, true, MSG.ADMIN_NOT_FOUND));
     }
+    console.log("Database mein current attempt count:", admin.attempt);
 
     const isPasswordValid = await bcrypt.compare(req.body.password, admin.password);
     
@@ -90,7 +91,29 @@ module.exports.forgetPassword = async (req, res) => {
       return res.status(statusCode.NOT_FOUND).json(errorResponse(statusCode.NOT_FOUND, true, "Admin not found with this email"));
     }
 
-    const otp = Math.floor(1000 + Math.random() * 9000);
+    let currentAttempt = admin.attempt || 0; 
+    let currentExpire = admin.attempt_expire || null;
+
+    // Check if already 3 attempts ho chuke hain
+    if (currentAttempt >= 3 && currentExpire && new Date(currentExpire) > new Date()) {
+        return res.status(statusCode.TOO_MANY_REQUESTS).json(
+            errorResponse(statusCode.TOO_MANY_REQUESTS, true, "You are excced the limit of send OTPs.")
+        );
+    }
+    
+    // Agar 60 min expire ho gaya hai to reset karo
+    if (currentAttempt >= 3 && currentExpire && new Date(currentExpire) <= new Date()) {
+        currentAttempt = 0;
+        currentExpire = null;
+        await adminAuthService.updateAdmin(admin._id, { 
+            attempt: 0, 
+            attempt_expire: null 
+        });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    const expireOTPTime = new Date(Date.now() + 1000 * 60 * 2); // 2 minute ki expiry
+
     console.log("Generated Admin OTP:", otp);
 
     const mailOptions = {
@@ -104,11 +127,29 @@ module.exports.forgetPassword = async (req, res) => {
         `
     };
 
-    sendotpmailer.sendMail(mailOptions, (error, info) => {
+    sendotpmailer.sendMail(mailOptions, async (error, info) => {
         if (error) {
             console.log("Email Bhejne Mein Error:", error);
             return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, "Failed to send OTP email"));
         }
+        
+        // Email successfully send hone ke BAAD hi attempt count badhao
+        currentAttempt++;
+        
+        if (currentAttempt === 3) {
+            currentExpire = new Date(Date.now() + 1000 * 60 * 60); // 60 minute lock
+        }
+
+        // Database update
+        await adminAuthService.updateAdmin(admin._id, { 
+            OTP: otp, 
+            OTPExpire: expireOTPTime, 
+            attempt: currentAttempt, 
+            attempt_expire: currentExpire 
+        });
+        
+        console.log("Updated attempt count:", currentAttempt);
+        console.log("Expire time:", currentExpire);
         
         return res.status(statusCode.OK).json(
             successResponse(statusCode.OK, false, "OTP sent successfully to Admin email", { email, otp }) 
