@@ -19,7 +19,7 @@ module.exports = class AdminAuthServices {
 
   async fetchAllAdmin() {
     try {
-      return await adminModel.find({ isDelete: false });
+      return await Admin.find({ isDelete: false });
     } catch (error) {
       console.log("fetch All Admin Error", error);
     }
