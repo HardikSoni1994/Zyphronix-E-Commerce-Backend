@@ -210,3 +210,105 @@ module.exports.resetPassword = async (req, res) => {
     return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, "Internal Server Error"));
   }
 };
+
+// 👥 GET ALL USERS LOGIC (ONLY FOR ADMIN)
+module.exports.fetchAllUser = async (req, res) => {
+    try {
+        // Sirf unhi users ko nikalenge jo delete nahi hue hain
+        const users = await UserAuthService.fetchAllUser({ isDelete: false });
+
+        if (!users || users.length === 0) {
+            return res.status(statusCode.NOT_FOUND).json(errorResponse(statusCode.NOT_FOUND, true, "No users found"));
+        }
+
+        return res.status(statusCode.OK).json(successResponse(statusCode.OK, false, "All Users Fetched Successfully", users));
+
+    } catch (error) {
+        console.log("Fetch All Users Error : ", error);
+        return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR));
+    }
+};
+
+// 🧑‍💻 GET USER PROFILE LOGIC (ONLY FOR LOGGED-IN USER)
+module.exports.userProfile = async (req, res) => {
+    try {
+        // Middleware ne already req.user mein data daal diya hai
+        const user = req.user; 
+
+        return res.status(statusCode.OK).json(
+            successResponse(statusCode.OK, false, MSG.USER_PROFILE_SUCCESS, user)
+        );
+    } catch (error) {
+        console.log("User Profile Error : ", error);
+        return res.status(statusCode.INTERNAL_SERVER_ERROR).json(
+            errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR)
+        );
+    }
+};
+
+// 🔐 CHANGE PASSWORD LOGIC (FOR LOGGED-IN USER)
+module.exports.changePassword = async (req, res) => {
+    try {
+        // 1. Database se user nikalo (req.user middleware se aa raha hai)
+        const user = await UserAuthService.singleUser({ _id: req.user._id });
+
+        if (!user) {
+             return res.status(statusCode.BAD_REQUEST).json(errorResponse(statusCode.BAD_REQUEST, true, "User not found"));
+        }
+
+        // 2. Current password check karo
+        const isPasswordMatch = await bcrypt.compare(req.body.current_password, user.password);
+
+        if (!isPasswordMatch) {
+            return res.status(statusCode.BAD_REQUEST).json(errorResponse(statusCode.BAD_REQUEST, true, MSG.CHANGE_PASSWORD_FAILED));
+        }
+
+        // 3. Naya password hash karo
+        const hashedNewPassword = await bcrypt.hash(req.body.new_password, 11);
+
+        // 4. Database mein update karo
+        await UserAuthService.updateUser(req.user._id, { password: hashedNewPassword });
+
+        // 5. Success response bhejo
+        return res.status(statusCode.OK).json(successResponse(statusCode.OK, false, MSG.CHANGE_PASSWORD_SUCCESS));
+
+    } catch (err) {
+        console.log("User Change Password Error : ", err);
+        return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR));
+    }
+};
+
+// 🚫 BLOCK / UNBLOCK USER LOGIC (ONLY FOR ADMIN)
+module.exports.toggleUserStatus = async (req, res) => {
+    try {
+        // Guard clause: Agar koi normal user (customer) isko hit kare, toh bhaga do!
+        // Sirf Admin allow hona chahiye
+        if (req.user) {
+            return res.status(statusCode.BAD_REQUEST).json(errorResponse(statusCode.BAD_REQUEST, true, MSG.UNAUTHORIZED_ACCESS));
+        }
+
+        const userId = req.query.id;
+
+        // 1. User ko database se nikaalo
+        const user = await UserAuthService.singleUser({ _id: userId, isDelete: false });
+
+        if (!user) {
+            return res.status(statusCode.BAD_REQUEST).json(errorResponse(statusCode.BAD_REQUEST, true, "User not found"));
+        }
+
+        // 2. Status Toggle karo (Active hai toh Inactive, Inactive hai toh Active)
+        const updatedUser = await UserAuthService.updateUser(
+            userId,
+            { isActive: !user.isActive }
+        );
+
+        // 3. Dynamic Message (Blocked ya Unblocked)
+        const statusMessage = `${user.first_name} ${user.last_name} is now ${updatedUser.isActive ? 'Active (Unblocked)' : 'Inactive (Blocked)'}`;
+
+        return res.status(statusCode.OK).json(successResponse(statusCode.OK, false, statusMessage, updatedUser));
+
+    } catch (err) {
+        console.log("Toggle User Status Error : ", err);
+        return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR));
+    }
+};

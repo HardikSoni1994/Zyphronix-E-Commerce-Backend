@@ -29,6 +29,7 @@ module.exports.MSG = {
     USER_FETCH_SUCCESS: "Users fetched successfully",
     USER_BLOCK_SUCCESS: "User blocked successfully",
     USER_UNBLOCK_SUCCESS: "User unblocked successfully",
+    USER_PROFILE_SUCCESS: "User Profile fetched successfully",
 
     // ===============================
     // 📦 PRODUCT MESSAGES
