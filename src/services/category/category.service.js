@@ -9,4 +9,7 @@ module.exports = class CategoryService {
             
         }
     }
+    async fetchAllCategories() {
+        return await Category.find();
+    }
 }

@@ -28,4 +28,16 @@ module.exports.addCategory = async (req, res) => {
     } catch (error) {
         return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR))
     }
+};
+
+module.exports.fetchCategory = async (req, res) => {
+    try {
+        const categories = await categoryService.fetchAllCategories();
+
+        return res.status(statusCode.OK).json(successResponse(statusCode.OK, false, MSG.CATEGORY_FETCH_SUCCESS, categories));
+
+    } catch (error) {
+        console.log("Category Fetch Error", error);
+        return res.status(statusCode.INTERNAL_SERVER_ERROR).json(errorResponse(statusCode.INTERNAL_SERVER_ERROR, true, MSG.INTERNAL_SERVER_ERROR));
+    }
 }
