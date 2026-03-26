@@ -1,4 +1,7 @@
-# 🛒 Zyphronix E-Commerce Backend API
+<p align="center">
+  <img src="./Zyphronix_-_logo.png" width="200" alt="Zyphronix Logo" />
+</p>
+<h1 align="center" style="margin-top: -25px;">Zyphronix E-Commerce Backend API</h1>
 
 Welcome to the backend repository of **Zyphronix**, a modern and scalable E-Commerce platform built with Node.js. This project strictly follows the **MVC (Model-View-Controller)** architecture for clean code separation and scalability.
 
